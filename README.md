@@ -1,6 +1,6 @@
 # HarmonyMinuteChartDemo
 
-HarmonyOS 6 / ArkTS 自绘实时图谱 Demo。
+HarmonyOS 5 / ArkTS 自绘实时图谱 Demo。
 
 ## 功能
 
@@ -16,7 +16,7 @@ HarmonyOS 6 / ArkTS 自绘实时图谱 Demo。
 ## 使用
 
 1. 用 DevEco Studio 打开本目录。
-2. 使用 HarmonyOS 6 SDK，建议 API 20 或以上。
+2. 使用 HarmonyOS 5 SDK，建议 API 12 或以上。若你的 DevEco Studio 已安装 5.0.5 / API 17，也可以直接打开运行。
 3. 运行 entry 模块。
 
 ## 生产化建议
@@ -28,3 +28,10 @@ HarmonyOS 6 / ArkTS 自绘实时图谱 Demo。
 - 数据模型使用 typed-array 或固定长度环形缓冲区，避免频繁创建对象。
 - 触摸 Move 事件节流到 16ms 或 32ms。
 - 如果图标很多，按分钟索引建立稀疏数组，避免每帧全量遍历。
+
+
+## HarmonyOS 5 兼容说明
+
+- 工程级 `build-profile.json5` 已将 `compatibleSdkVersion` 调整为 `5.0.0(12)`。
+- Demo 只使用 ArkUI 基础组件、Canvas、TouchEvent、Stack/Column/Text 等通用能力，避免依赖 HarmonyOS 6 专有 API。
+- 如果你的本地 SDK 只有 HarmonyOS 5.0.5 / API 17，可在 DevEco Studio 中同步 SDK 后运行；如需使用更新 SDK 编译，也不要把 `compatibleSdkVersion` 改回 6.0，否则低版本系统会被排除。

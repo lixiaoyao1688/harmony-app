@@ -1,0 +1,10 @@
+{
+  "modelVersion": "5.0.0",
+  "name": "harmony-minute-chart-demo",
+  "version": "1.0.0",
+  "description": "Realtime 1440-minute shared-axis custom chart demo for HarmonyOS 6 / ArkTS",
+  "main": "",
+  "author": "ChatGPT",
+  "license": "Apache-2.0",
+  "dependencies": {}
+}

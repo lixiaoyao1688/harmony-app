@@ -21,16 +21,18 @@ interface PlotRect {
   height: number;
 }
 
-interface HoverInfo {
+interface VerticalPickInfo {
   show: boolean;
   minute: number;
   x: number;
-  y: number;
-  line: number;
-  scatter: number;
-  low: number;
-  mid: number;
-  high: number;
+  touchY: number;
+  iconType: number;
+  lineValue: number;
+  scatterValue: number;
+  barLow: number;
+  barMid: number;
+  barHigh: number;
+  barTotal: number;
 }
 
 @Entry
@@ -43,16 +45,18 @@ struct Index {
   private canvasW: number = 0;
   private canvasH: number = 0;
 
-  @State private hover: HoverInfo = {
+  @State private hover: VerticalPickInfo = {
     show: false,
     minute: 0,
     x: 0,
-    y: 0,
-    line: 0,
-    scatter: 0,
-    low: 0,
-    mid: 0,
-    high: 0
+    touchY: 0,
+    iconType: 0,
+    lineValue: 0,
+    scatterValue: 0,
+    barLow: 0,
+    barMid: 0,
+    barHigh: 0,
+    barTotal: 0
   };
   @State private fpsText: string = 'Realtime Canvas Chart / 1440 points';
 
@@ -105,7 +109,7 @@ struct Index {
           })
           .margin({ left: 12, right: 12, bottom: 12 })
 
-        Text('触摸/拖动图谱：按 x 坐标拾取最近分钟，显示十字线和浮层详情。')
+        Text('触摸/拖动图谱：按 x 坐标吸附到最近分钟，竖线经过的图标、折线、散点和堆叠柱数据都会汇总到浮层。')
           .fontSize(13)
           .fontColor('#666666')
           .padding({ left: 16, right: 16, bottom: 12 })
@@ -120,13 +124,25 @@ struct Index {
             .fontSize(13)
             .fontWeight(FontWeight.Bold)
             .fontColor('#111111')
-          Text(`line: ${this.hover.line.toFixed(1)}`)
+          Text(`icon: ${this.iconName(this.hover.iconType)}`)
             .fontSize(12)
             .fontColor('#333333')
-          Text(`scatter: ${this.hover.scatter.toFixed(1)}`)
+          Text(`line: ${this.hover.lineValue.toFixed(1)}`)
             .fontSize(12)
             .fontColor('#333333')
-          Text(`bar: ${this.hover.low.toFixed(0)} / ${this.hover.mid.toFixed(0)} / ${this.hover.high.toFixed(0)}`)
+          Text(`scatter: ${this.hover.scatterValue.toFixed(1)}`)
+            .fontSize(12)
+            .fontColor('#333333')
+          Text(`bar.low: ${this.hover.barLow.toFixed(0)}`)
+            .fontSize(12)
+            .fontColor('#333333')
+          Text(`bar.mid: ${this.hover.barMid.toFixed(0)}`)
+            .fontSize(12)
+            .fontColor('#333333')
+          Text(`bar.high: ${this.hover.barHigh.toFixed(0)}`)
+            .fontSize(12)
+            .fontColor('#333333')
+          Text(`bar.total: ${this.hover.barTotal.toFixed(0)}`)
             .fontSize(12)
             .fontColor('#333333')
         }
@@ -302,38 +318,77 @@ struct Index {
     if (!this.hover.show) {
       return;
     }
+
     const x = this.xOf(this.hover.minute);
-    const y = this.yOf(this.hover.line);
+    const lineY = this.yOf(this.hover.lineValue);
+    const scatterY = this.yOf(this.hover.scatterValue);
+
+    // 1. 证券 App 风格的竖直参考线：按 x 轴分钟切片读取所有图层数据。
     ctx.strokeStyle = '#333333';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(x, this.plot.top);
     ctx.lineTo(x, this.plot.top + this.plot.height);
-    ctx.moveTo(this.plot.left, y);
-    ctx.lineTo(this.plot.left + this.plot.width, y);
     ctx.stroke();
+
+    // 2. 高亮折线点。
     ctx.fillStyle = '#FFFFFF';
     ctx.beginPath();
-    ctx.arc(x, y, 5, 0, Math.PI * 2);
+    ctx.arc(x, lineY, 5, 0, Math.PI * 2);
     ctx.fill();
     ctx.strokeStyle = '#1677FF';
+    ctx.lineWidth = 2;
     ctx.stroke();
+
+    // 3. 高亮散点。
+    ctx.fillStyle = '#111111';
+    ctx.beginPath();
+    ctx.arc(x, scatterY, 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 4. 如果当前分钟顶部有图标，圈出图标。
+    if (this.hover.iconType > 0) {
+      ctx.strokeStyle = '#FF3B30';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(x, 21, 9, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    // 5. 底部堆叠柱当前列高亮。
+    const barW = Math.max(2, this.plot.width / POINT_COUNT * 2.4);
+    ctx.strokeStyle = '#555555';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x - barW / 2, this.plot.top, barW, this.plot.height);
   }
 
   private updateHover(x: number, y: number): void {
+    const minute = this.minuteOfX(x);
+    this.hover = this.collectVerticalPick(minute, y);
+  }
+
+  private minuteOfX(x: number): number {
     const clampedX = Math.min(Math.max(x, this.plot.left), this.plot.left + this.plot.width);
-    const minute = Math.min(POINT_COUNT - 1, Math.max(0, Math.round((clampedX - this.plot.left) / this.plot.width * (POINT_COUNT - 1))));
+    return Math.min(
+      POINT_COUNT - 1,
+      Math.max(0, Math.round((clampedX - this.plot.left) / this.plot.width * (POINT_COUNT - 1)))
+    );
+  }
+
+  private collectVerticalPick(minute: number, touchY: number): VerticalPickInfo {
     const bar = this.data.bars[minute];
-    this.hover = {
+    return {
       show: true,
       minute,
-      x: clampedX,
-      y,
-      line: this.data.line[minute],
-      scatter: this.data.scatter[minute],
-      low: bar.low,
-      mid: bar.mid,
-      high: bar.high
+      x: this.xOf(minute),
+      touchY,
+      iconType: this.data.icons[minute],
+      lineValue: this.data.line[minute],
+      scatterValue: this.data.scatter[minute],
+      barLow: bar.low,
+      barMid: bar.mid,
+      barHigh: bar.high,
+      barTotal: bar.low + bar.mid + bar.high
     };
   }
 
@@ -352,13 +407,34 @@ struct Index {
     return `${h}:${m}`;
   }
 
+  private iconName(type: number): string {
+    if (type === 1) {
+      return 'green dot';
+    }
+    if (type === 2) {
+      return 'orange square';
+    }
+    if (type === 3) {
+      return 'purple triangle';
+    }
+    if (type === 4) {
+      return 'red dot';
+    }
+    return 'none';
+  }
+
   private tooltipX(): number {
-    const raw = 12 + this.hover.x + 12;
-    return Math.min(raw, Math.max(12, this.canvasW - 175));
+    const tooltipWidth = 185;
+    const padding = 12;
+    if (this.hover.x + tooltipWidth + 24 > this.canvasW) {
+      return Math.max(padding, this.hover.x - tooltipWidth - 12);
+    }
+    return this.hover.x + 12;
   }
 
   private tooltipY(): number {
-    const raw = 58 + this.hover.y - 64;
-    return Math.max(56, Math.min(raw, this.canvasH - 60));
+    const tooltipHeight = 176;
+    const raw = 58 + this.hover.touchY - 88;
+    return Math.max(56, Math.min(raw, this.canvasH - tooltipHeight));
   }
 }

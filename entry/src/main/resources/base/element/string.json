@@ -1,7 +1,0 @@
-{
-  "string": [
-    { "name": "module_desc", "value": "Realtime chart demo" },
-    { "name": "EntryAbility_desc", "value": "Realtime chart demo" },
-    { "name": "EntryAbility_label", "value": "MinuteChart" }
-  ]
-}

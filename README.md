@@ -1,41 +1,42 @@
-# HarmonyMinuteChartDemo_HOS5_VerticalPick
+# HarmonyMinuteChartDemo_HOS5_DarkStyle
 
-HarmonyOS 5 兼容版 ArkTS Demo：使用 ArkUI Canvas 自绘一个 1440 分钟刻度的实时多图层图谱。
+HarmonyOS 5 / ArkTS Canvas 自绘图谱 Demo。
 
-## 功能
+## 这版样式
 
-- x 轴 1440 个刻度，代表一天的分钟数。
-- 顶部图标层。
-- 平滑折线层。
-- 散点层。
-- 底部堆叠柱状图层。
-- 所有图层共享同一套 x/y 坐标映射。
-- 每 500ms 模拟一次实时数据刷新。
-- 手指触摸 / 拖动时，按 x 坐标吸附到最近 minute。
-- 沿当前 minute 绘制竖直参考线。
-- 读取竖线经过的所有图层数据：icon、line、scatter、bar.low、bar.mid、bar.high、bar.total。
-- 使用 ArkUI Stack 叠加 tooltip 悬浮窗显示详情。
-- tooltip 支持左右避让，避免超出画布。
+按照用户提供的参考图重做了视觉风格：
 
-## 关键代码
+- 深色背景
+- 灰绿色网格线
+- 右侧 Y 轴刻度 2 ~ 22
+- 底部 X 轴显示 0、2、4、6、8、10、现在
+- 中部青绿色目标区间背景
+- 白色粗平滑折线
+- 灰色虚线参考线
+- 红色事件标记
+- 顶部圆形事件图标
+- 底部紫色 / 青色堆叠柱
+- 触摸时绘制竖直选中线
+- 竖线穿过的图标、折线、散点、柱状数据汇总到浮窗
+- 浮窗样式接近截图中的浅灰气泡
 
-入口文件：
+## 入口文件
 
 ```text
 entry/src/main/ets/pages/Index.ets
 ```
 
-重点方法：
+## 运行
+
+使用 DevEco Studio 打开项目目录，选择 HarmonyOS 5 SDK / API 12 或更高版本运行。
+
+## 关键方法
 
 ```ts
-private minuteOfX(x: number): number
-private collectVerticalPick(minute: number, touchY: number): VerticalPickInfo
-private updateHover(x: number, y: number): void
+private drawGridAndAxes(ctx: CanvasRenderingContext2D): void
+private drawTargetBand(ctx: CanvasRenderingContext2D): void
+private drawSmoothLine(ctx: CanvasRenderingContext2D): void
+private drawStackBars(ctx: CanvasRenderingContext2D): void
 private drawHover(ctx: CanvasRenderingContext2D): void
+private collectVerticalPick(minute: number, touchY: number): VerticalPickInfo
 ```
-
-## 兼容性
-
-当前工程配置面向 HarmonyOS 5，`compatibleSdkVersion` 使用 `5.0.0(12)`。
-
-如果你的 DevEco Studio 本地安装的是 HarmonyOS 5.0.5 / API 17 SDK，也可以导入后按本地 SDK 配置微调。

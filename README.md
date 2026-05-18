@@ -1,42 +1,22 @@
-# HarmonyMinuteChartDemo_HOS5_DarkStyle
+# HarmonyMinuteChartDemo HOS5 Dark Style V2
 
-HarmonyOS 5 / ArkTS Canvas 自绘图谱 Demo。
+HarmonyOS 5 兼容 ArkTS Demo，自绘 1440 分钟图谱。
 
-## 这版样式
+本版调整：
 
-按照用户提供的参考图重做了视觉风格：
+- 移除底部设备信息文本，Canvas 占满页面。
+- X 轴仍然按 1440 分钟点绘制，刻度文本显示小时。
+- X 轴刻度文本最大值为当前小时向下按 4 小时取整，例如 09:16 显示到 8，17:30 显示到 16。
+- X 轴刻度文本每 4 小时显示一次：0、4、8、12、16、20、24。
+- X / Y 轴刻度字号加大。
+- 悬浮窗不再常驻：手指按下或滑动到有数据的位置时才显示，松手隐藏。
+- 有数据的位置包括：顶部图标、红色事件点、底部柱状数据；折线本身不作为 tooltip 触发条件，避免全图常驻提示。
+- 保留深色网格、青绿色目标区域、白色平滑折线、紫色/青色堆叠柱、红色事件点、顶部圆形图标。
 
-- 深色背景
-- 灰绿色网格线
-- 右侧 Y 轴刻度 2 ~ 22
-- 底部 X 轴显示 0、2、4、6、8、10、现在
-- 中部青绿色目标区间背景
-- 白色粗平滑折线
-- 灰色虚线参考线
-- 红色事件标记
-- 顶部圆形事件图标
-- 底部紫色 / 青色堆叠柱
-- 触摸时绘制竖直选中线
-- 竖线穿过的图标、折线、散点、柱状数据汇总到浮窗
-- 浮窗样式接近截图中的浅灰气泡
-
-## 入口文件
+核心文件：
 
 ```text
 entry/src/main/ets/pages/Index.ets
 ```
 
-## 运行
-
-使用 DevEco Studio 打开项目目录，选择 HarmonyOS 5 SDK / API 12 或更高版本运行。
-
-## 关键方法
-
-```ts
-private drawGridAndAxes(ctx: CanvasRenderingContext2D): void
-private drawTargetBand(ctx: CanvasRenderingContext2D): void
-private drawSmoothLine(ctx: CanvasRenderingContext2D): void
-private drawStackBars(ctx: CanvasRenderingContext2D): void
-private drawHover(ctx: CanvasRenderingContext2D): void
-private collectVerticalPick(minute: number, touchY: number): VerticalPickInfo
-```
+兼容目标：HarmonyOS 5 / API 12+。

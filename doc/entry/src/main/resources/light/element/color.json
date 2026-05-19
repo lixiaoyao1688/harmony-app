@@ -1,0 +1,24 @@
+{
+  "color": [
+    {
+      "name": "bg_0",
+      "value": "#0095AD"
+    },
+    {
+      "name": "bg_1",
+      "value": "#0095AD"
+    },
+    {
+      "name": "bg_2",
+      "value": "#FFFFFF"
+    },
+    {
+      "name": "bg_3",
+      "value": "#DCDDE0"
+    },
+    {
+      "name": "color_0",
+      "value": "#000000"
+    }
+  ]
+}

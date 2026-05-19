@@ -1,0 +1,12 @@
+{
+  "string": [
+    {
+      "name": "bluetooth_reason",
+      "value": "用于搜索附近的蓝牙设备，以便建立连接和传输数据。"
+    },
+    {
+      "name": "pump_list",
+      "value": "泵列表"
+    }
+  ]
+}

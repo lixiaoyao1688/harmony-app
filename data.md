@@ -1,1 +1,0 @@
-https://train.suuwu.de/api/linkon?token=2d41399fae0c3f41d84c72697bd17074&protocol=vless

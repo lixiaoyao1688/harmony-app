@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chrome 本地大模型 · Prompt API Demo</title>
+<style>
+  :root{
+    --bg:#EEF1F5;
+    --panel:#FFFFFF;
+    --ink:#1B2430;
+    --muted:#67738A;
+    --line:#D8DEE8;
+    --accent:#3D5AFE;
+    --ok:#1DB954;
+    --warn:#E8A13C;
+    --err:#E0432F;
+    --mono:"SFMono-Regular",ui-monospace,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:-apple-system,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    min-height:100vh;
+    display:flex;justify-content:center;
+    padding:32px 16px;
+  }
+  .app{width:100%;max-width:760px;display:flex;flex-direction:column;gap:16px}
+
+  header{display:flex;align-items:center;gap:14px}
+  .lamp{
+    width:14px;height:14px;border-radius:50%;
+    background:var(--muted);flex:none;
+    box-shadow:0 0 0 4px rgba(0,0,0,.05);
+    transition:background .3s;
+  }
+  .lamp.ok{background:var(--ok);box-shadow:0 0 10px rgba(29,185,84,.6)}
+  .lamp.warn{background:var(--warn)}
+  .lamp.err{background:var(--err)}
+  header h1{font-size:18px;font-weight:650;letter-spacing:.5px}
+  header .sub{font-family:var(--mono);font-size:12px;color:var(--muted)}
+
+  .panel{
+    background:var(--panel);border:1px solid var(--line);
+    border-radius:12px;padding:16px;
+  }
+  .status-line{font-family:var(--mono);font-size:13px;color:var(--muted);line-height:1.7;white-space:pre-wrap}
+
+  .progress{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin-top:10px;display:none}
+  .progress.show{display:block}
+  .progress>div{height:100%;width:0;background:var(--accent);transition:width .25s}
+
+  .chat{
+    flex:1;display:flex;flex-direction:column;gap:12px;
+    min-height:280px;max-height:50vh;overflow-y:auto;
+  }
+  .msg{max-width:85%;padding:10px 14px;border-radius:12px;font-size:14px;line-height:1.65;white-space:pre-wrap;word-break:break-word}
+  .msg.user{align-self:flex-end;background:var(--accent);color:#fff;border-bottom-right-radius:4px}
+  .msg.ai{align-self:flex-start;background:var(--bg);border:1px solid var(--line);border-bottom-left-radius:4px}
+  .msg.ai.typing::after{content:"▌";animation:blink 1s step-end infinite}
+  @keyframes blink{50%{opacity:0}}
+
+  .inputbar{display:flex;gap:10px}
+  textarea{
+    flex:1;resize:none;border:1px solid var(--line);border-radius:10px;
+    padding:11px 14px;font-size:14px;font-family:inherit;line-height:1.5;
+    background:var(--panel);color:var(--ink);height:46px;
+  }
+  textarea:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:transparent}
+  button{
+    border:none;border-radius:10px;padding:0 20px;height:46px;
+    font-size:14px;font-weight:600;cursor:pointer;
+    background:var(--accent);color:#fff;flex:none;
+  }
+  button:disabled{background:var(--line);color:var(--muted);cursor:not-allowed}
+  button.ghost{background:transparent;color:var(--muted);border:1px solid var(--line);font-weight:500}
+  button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+
+  .toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+  .quota{font-family:var(--mono);font-size:12px;color:var(--muted)}
+
+  details{font-size:13px;color:var(--muted);line-height:1.8}
+  details summary{cursor:pointer;font-weight:600;color:var(--ink)}
+  code{font-family:var(--mono);background:var(--bg);padding:1px 6px;border-radius:4px;font-size:12px}
+
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="lamp" id="lamp"></div>
+    <div>
+      <h1>Chrome 本地大模型对话</h1>
+      <div class="sub">window.LanguageModel · Gemini Nano · 完全离线推理</div>
+    </div>
+  </header>
+
+  <div class="panel">
+    <div class="status-line" id="status">正在检测浏览器环境……</div>
+    <div class="progress" id="progress"><div id="progressBar"></div></div>
+  </div>
+
+  <div class="panel chat" id="chat"></div>
+
+  <div class="panel">
+    <div class="inputbar">
+      <textarea id="input" placeholder="输入内容，Enter 发送（Shift+Enter 换行）" disabled></textarea>
+      <button id="send" disabled>发送</button>
+    </div>
+    <div class="toolbar" style="margin-top:10px">
+      <span class="quota" id="quota"></span>
+      <button class="ghost" id="reset" disabled>重置会话</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <details>
+      <summary>用不了？开启方法</summary>
+      <p style="margin-top:8px">
+        1. 使用 <b>Chrome 138+</b>（建议最新稳定版 / Canary）。<br>
+        2. 地址栏打开 <code>chrome://flags/#prompt-api-for-gemini-nano</code> → 设为 Enabled。<br>
+        3. 打开 <code>chrome://flags/#optimization-guide-on-device-model</code> → 设为 Enabled BypassPerfRequirement。<br>
+        4. 重启浏览器后，在 <code>chrome://on-device-internals</code> 确认模型下载完成（约 2~4 GB，需较新 GPU 和足够磁盘空间）。<br>
+        5. 本页面需通过 <code>http(s)://</code> 或 <code>localhost</code> 打开（如 <code>npx serve</code>），部分版本不支持 <code>file://</code>。
+      </p>
+    </details>
+  </div>
+
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const lamp = $('lamp'), statusEl = $('status'), chat = $('chat');
+const input = $('input'), sendBtn = $('send'), resetBtn = $('reset');
+const progress = $('progress'), progressBar = $('progressBar'), quotaEl = $('quota');
+
+let session = null;
+
+const SYSTEM_PROMPT = '你是运行在用户浏览器里的本地 AI 助手，请用简体中文简洁回答。';
+
+function setStatus(text, state){          // state: ok | warn | err | ''
+  statusEl.textContent = text;
+  lamp.className = 'lamp' + (state ? ' ' + state : '');
+}
+
+function addMsg(role, text){
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  div.textContent = text;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+  return div;
+}
+
+function updateQuota(){
+  if (!session) { quotaEl.textContent = ''; return; }
+  // 新版 API 用 inputUsage / inputQuota，旧版用 tokensSoFar / maxTokens
+  const used  = session.inputUsage ?? session.tokensSoFar;
+  const total = session.inputQuota ?? session.maxTokens;
+  if (used !== undefined && total !== undefined) {
+    quotaEl.textContent = `上下文用量: ${used} / ${total} tokens`;
+  }
+}
+
+function enableUI(on){
+  input.disabled = !on;
+  sendBtn.disabled = !on;
+  resetBtn.disabled = !on;
+}
+
+async function createSession(){
+  setStatus('正在创建会话（首次可能触发模型下载）……', 'warn');
+  session = await LanguageModel.create({
+    initialPrompts: [{ role: 'system', content: SYSTEM_PROMPT }],
+    monitor(m){
+      m.addEventListener('downloadprogress', e => {
+        progress.classList.add('show');
+        const pct = Math.round(e.loaded * 100);
+        progressBar.style.width = pct + '%';
+        setStatus(`正在下载 Gemini Nano 模型…… ${pct}%`, 'warn');
+      });
+    }
+  });
+  progress.classList.remove('show');
+  setStatus('模型就绪 ✓ 所有推理均在本机进行，不联网。', 'ok');
+  enableUI(true);
+  updateQuota();
+}
+
+async function init(){
+  if (!('LanguageModel' in self)) {
+    setStatus('当前浏览器没有 LanguageModel API。\n请使用 Chrome 138+ 并按下方说明开启 flags。', 'err');
+    return;
+  }
+  let availability;
+  try {
+    availability = await LanguageModel.availability();
+  } catch (e) {
+    setStatus('检测可用性失败: ' + e.message, 'err');
+    return;
+  }
+
+  switch (availability) {
+    case 'unavailable':
+      setStatus('此设备不支持本地模型（硬件不满足要求或被策略禁用）。', 'err');
+      break;
+    case 'available':
+      await createSession();
+      break;
+    case 'downloadable':
+    case 'downloading':
+      // 触发下载需要用户主动交互（user activation）
+      setStatus('模型尚未就绪，点击下方按钮开始下载 / 初始化。', 'warn');
+      const btn = document.createElement('button');
+      btn.textContent = '下载并初始化模型';
+      btn.style.marginTop = '10px';
+      statusEl.after(btn);
+      btn.onclick = async () => {
+        btn.remove();
+        try { await createSession(); }
+        catch (e) { setStatus('初始化失败: ' + e.message, 'err'); }
+      };
+      break;
+    default:
+      setStatus('未知状态: ' + availability, 'warn');
+  }
+}
+
+async function send(){
+  const text = input.value.trim();
+  if (!text || !session) return;
+  input.value = '';
+  enableUI(false);
+
+  addMsg('user', text);
+  const aiDiv = addMsg('ai', '');
+  aiDiv.classList.add('typing');
+
+  try {
+    // 流式输出：promptStreaming 返回一个异步可迭代的文本块流
+    const stream = session.promptStreaming(text);
+    for await (const chunk of stream) {
+      aiDiv.textContent += chunk;
+      chat.scrollTop = chat.scrollHeight;
+    }
+  } catch (e) {
+    aiDiv.textContent += '\n[出错: ' + e.message + ']';
+  } finally {
+    aiDiv.classList.remove('typing');
+    enableUI(true);
+    updateQuota();
+    input.focus();
+  }
+}
+
+sendBtn.onclick = send;
+input.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+});
+
+resetBtn.onclick = async () => {
+  session?.destroy();          // 释放 GPU / 内存资源
+  session = null;
+  chat.innerHTML = '';
+  enableUI(false);
+  await createSession();
+};
+
+init();
+</script>
+</body>
+</html>
